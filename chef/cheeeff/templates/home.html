@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cheeeff — Votre Chef IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0d0b;
+    --surface: #1a1612;
+    --card: #221e18;
+    --border: #2e2720;
+    --accent: #d4922a;
+    --accent-dim: #a16e1a;
+    --text: #f0e8dc;
+    --text-muted: #8a7a66;
+    --user-bubble: #2a2018;
+    --chef-bubble: #1e1a14;
+    --radius: 18px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .chef-avatar {
+    width: 46px; height: 46px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px #d4922a33;
+  }
+
+  .header-info h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    color: var(--accent);
+    line-height: 1.1;
+  }
+
+  .header-info p {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 300;
+    letter-spacing: .03em;
+  }
+
+
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 #4caf6e55; }
+    50%      { box-shadow: 0 0 0 6px #4caf6e00; }
+  }
+
+  /* ── Messages area ── */
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .message {
+    display: flex;
+    gap: 10px;
+    max-width: 82%;
+    animation: fadeUp .25s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user  { align-self: flex-end; flex-direction: row-reverse; }
+  .message.chef  { align-self: flex-start; }
+
+  .msg-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .message.user  .msg-avatar { background: #2a2018; }
+  .message.chef  .msg-avatar { background: var(--accent); }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    line-height: 1.6;
+    font-size: 0.88rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .message.user .bubble {
+    background: var(--user-bubble);
+    border: 1px solid var(--border);
+    border-bottom-right-radius: 4px;
+    color: var(--text);
+  }
+
+  .message.chef .bubble {
+    background: var(--chef-bubble);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+    color: var(--text);
+  }
+
+  /* Markdown-like formatting inside bubbles */
+  .bubble strong { color: var(--accent); font-weight: 500; }
+  .bubble em { font-style: italic; color: var(--text-muted); }
+
+  /* Typing indicator */
+  .typing .bubble {
+    display: flex; gap: 5px; align-items: center;
+    padding: 14px 18px;
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: bounce 1.2s ease infinite;
+  }
+  .dot:nth-child(2) { animation-delay: .2s; }
+  .dot:nth-child(3) { animation-delay: .4s; }
+
+  @keyframes bounce {
+    0%,80%,100% { transform: translateY(0); }
+    40%          { transform: translateY(-6px); }
+  }
+
+  /* ── Suggestions ── */
+  #suggestions {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 12px;
+    overflow-x: auto;
+    flex-shrink: 0;
+    scrollbar-width: none;
+  }
+  #suggestions::-webkit-scrollbar { display: none; }
+
+  .suggestion {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .18s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .suggestion:hover {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+    background: #2a1e0e;
+  }
+
+  /* ── Input area ── */
+  #input-area {
+    padding: 12px 16px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px 8px 16px;
+    transition: border-color .2s;
+  }
+  .input-row:focus-within { border-color: var(--accent-dim); }
+
+  #user-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    resize: none;
+    max-height: 120px;
+    line-height: 1.5;
+    padding: 4px 0;
+  }
+  #user-input::placeholder { color: var(--text-muted); }
+
+  #send-btn {
+    background: var(--accent);
+    border: none;
+    color: #0f0d0b;
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 17px;
+    transition: background .18s, transform .1s;
+  }
+  #send-btn:hover  { background: #e8a030; }
+  #send-btn:active { transform: scale(.93); }
+  #send-btn:disabled { background: var(--border); cursor: default; }
+
+  /* Welcome card */
+  .welcome {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-muted);
+  }
+ 
+  .welcome h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .welcome p { font-size: 0.85rem; font-weight: 300; line-height: 1.6; }
+.chef-avatar img {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+</style>
+</head>
+<body>
+{% load static %}
+<header>
+  <div class="chef-avatar"><img src="{% static 'images/fillechef.jpg' %}" alt="Chef IA"></div>
+  <div class="header-info">
+    <h1>Cheeeff</h1>
+    <p>Chef cuisinier IA · disponible 24h/24</p>
+  </div>
+  <div class="status-dot"></div>
+</header>
+
+<div id="messages">
+  <div class="welcome">
+    
+    <h2>Bonjour, je suis Cheeeff !</h2>
+    <p>Posez-moi n'importe quelle question culinaire.<br>Recettes, techniques, substitutions… je suis là !</p>
+  </div>
+</div>
+
+<div id="suggestions">
+  <button class="suggestion" onclick="sendSuggestion(this)">🥗 Recette avec des courgettes</button>
+  <button class="suggestion" onclick="sendSuggestion(this)">🍝 Pâtes rapides du soir</button>
+  <button class="suggestion" onclick="sendSuggestion(this)">🥩 Comment cuire un steak parfait ?</button>
+  <button class="suggestion" onclick="sendSuggestion(this)">🌿 Substitut sans gluten</button>
+  <button class="suggestion" onclick="sendSuggestion(this)">🍰 Dessert facile</button>
+</div>
+
+<div id="input-area">
+  <div class="input-row">
+    <textarea id="user-input" rows="1" placeholder="Qu'avez-vous dans votre frigo ? Quelle recette souhaitez-vous ?"></textarea>
+    <button id="send-btn" onclick="sendMessage()" title="Envoyer">➤</button>
+  </div>
+</div>
+
+<script>
+  const messagesEl  = document.getElementById('messages');
+  const inputEl     = document.getElementById('user-input');
+  const sendBtn     = document.getElementById('send-btn');
+  const suggestDiv  = document.getElementById('suggestions');
+
+  // Historique local de la conversation
+  let history = [];
+
+  /* ── Auto-resize textarea ── */
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  });
+
+  /* ── Enter to send (Shift+Enter = newline) ── */
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  function sendSuggestion(btn) {
+    inputEl.value = btn.textContent.replace(/^[^\w]+ /, '');
+    sendMessage();
+    suggestDiv.style.display = 'none';
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    // Cacher les suggestions après le 1er message
+    suggestDiv.style.display = 'none';
+    // Cacher le welcome card
+    const welcome = messagesEl.querySelector('.welcome');
+    if (welcome) welcome.remove();
+
+    appendMessage('user', text);
+    history.push({ role: 'user', content: text });
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    // Afficher le typing indicator
+    const typingEl = appendTyping();
+
+    try {
+      const res = await fetch('/chat/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history: history.slice(0, -1) })
+      });
+
+      const data = await res.json();
+      typingEl.remove();
+
+      if (data.success) {
+        appendMessage('chef', data.reply);
+        history.push({ role: 'assistant', content: data.reply });
+      } else {
+        appendMessage('chef', '❌ Erreur : ' + (data.error || 'Une erreur est survenue'));
+      }
+    } catch (err) {
+      typingEl.remove();
+      appendMessage('chef', '⚠️ Impossible de joindre le serveur. Vérifiez votre connexion.');
+    }
+
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+
+  function appendMessage(role, text) {
+    const wrap = document.createElement('div');
+    wrap.className = `message ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = role === 'user' ? '' : '';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = formatText(text);
+
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    messagesEl.appendChild(wrap);
+    scrollBottom();
+    return wrap;
+  }
+
+  function appendTyping() {
+    const wrap = document.createElement('div');
+    wrap.className = 'message chef typing';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    avatar.textContent = '';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    messagesEl.appendChild(wrap);
+    scrollBottom();
+    return wrap;
+  }
+
+  function formatText(text) {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function scrollBottom() {
+    messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
