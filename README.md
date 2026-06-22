@@ -11,6 +11,7 @@ Une application intelligente de cuisine qui utilise l'intelligence artificielle 
 - 📊 Gestion du stock d'ingrédients
 
 ## 🚀 Installation
+<img width="1918" height="920" alt="image" src="https://github.com/user-attachments/assets/4efa61e5-1e07-4819-b937-7768ab2557d0" />
 
 ```bash
 # Cloner le repository
